@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MongooseModule } from '@nestjs/mongoose';
 import configuration from './config/configuration';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
 
 @Module({
@@ -35,6 +36,7 @@ import { User } from './users/entities/user.entity';
       inject: [ConfigService],
     }),
     AuthModule,
+    UsersModule,
   ],
 })
 export class AppModule {}
