@@ -10,7 +10,7 @@ import { GatewayModule } from './gateway/gateway.module';
 import { User } from './users/entities/user.entity';
 import { Room } from './rooms/entities/room.entity';
 import { RoomParticipant } from './rooms/entities/room-participant.entity';
-
+import { MessagesModule } from './messages/messages.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -43,6 +43,7 @@ import { RoomParticipant } from './rooms/entities/room-participant.entity';
     UsersModule,
     RoomsModule,
     GatewayModule,
+    MessagesModule,
   ],
 })
 export class AppModule {}
