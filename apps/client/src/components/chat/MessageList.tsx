@@ -21,12 +21,10 @@ export function MessageList({ messages, currentUserId, onLoadMore, hasMore, isLo
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
-  // IntersectionObserver: load older messages when top sentinel is visible
   useEffect(() => {
     if (!hasMore || isLoading) return;
     const observer = new IntersectionObserver(
@@ -48,10 +46,11 @@ export function MessageList({ messages, currentUserId, onLoadMore, hasMore, isLo
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
+        width: '100%',
+        alignItems: 'stretch',
       }}
     >
       <div ref={topRef} style={{ height: 1 }} />
-      <div style={{ flex: 1 }} />
       {isLoading && messages.length === 0 && (
         <div style={{ textAlign: 'center', color: '#aaa', fontSize: 13, padding: 16 }}>
           Yükleniyor...
