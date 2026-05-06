@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Server, Socket } from 'socket.io';
 import { WsJwtGuard } from './ws-jwt.guard';
+import { MessagesService } from '../messages/messages.service';
 
 @WebSocketGateway({
   cors: {
@@ -23,6 +24,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private jwtService: JwtService,
     private config: ConfigService,
+    private messagesService: MessagesService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -67,5 +69,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     await client.leave(data.roomId);
     client.emit('leftRoom', { roomId: data.roomId });
+  }
+
+  @UseGuards(WsJwtGuard)
+  @SubscribeMessage('sendMessage')
+  async handleSendMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; content: string; type?: string },
+  ) {
+    const message = await this.messagesService.send({
+      roomId: data.roomId,
+      senderId: client.data.userId,
+      content: data.content,
+      type: data.type,
+    });
+
+    // Odadaki herkese gönder
+    this.server.to(data.roomId).emit('newMessage', message);
+
+    return message;
   }
 }
