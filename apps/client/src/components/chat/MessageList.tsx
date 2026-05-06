@@ -51,6 +51,7 @@ export function MessageList({ messages, currentUserId, onLoadMore, hasMore, isLo
       }}
     >
       <div ref={topRef} style={{ height: 1 }} />
+      <div style={{ flex: 1 }} />
       {isLoading && messages.length === 0 && (
         <div style={{ textAlign: 'center', color: '#aaa', fontSize: 13, padding: 16 }}>
           Yükleniyor...
