@@ -14,6 +14,12 @@ interface SendMessageDto {
   replyTo?: string;
 }
 
+interface MessageQuery {
+  room_id: string;
+  is_deleted: boolean;
+  created_at?: { $lt: Date };
+}
+
 @Injectable()
 export class MessagesService {
   constructor(
@@ -44,7 +50,7 @@ export class MessagesService {
   }
 
   async getMessages(roomId: string, cursor?: string, limit = 30) {
-    const query: any = { room_id: roomId, is_deleted: false };
+    const query: MessageQuery = { room_id: roomId, is_deleted: false };
 
     if (cursor) {
       query.created_at = { $lt: new Date(cursor) };
