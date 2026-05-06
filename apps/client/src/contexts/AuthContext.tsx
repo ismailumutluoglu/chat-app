@@ -4,6 +4,7 @@ import api from '../api/axios';
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
+  currentUserId: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -11,9 +12,20 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+function decodeJWT(token: string): { sub?: string } | null {
+  try {
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const refreshToken = localStorage.getItem('refreshToken');
@@ -25,6 +37,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     api.post('/auth/refresh', { refreshToken })
       .then(({ data }) => {
         window.__accessToken = data.accessToken;
+        const payload = decodeJWT(data.accessToken);
+        setCurrentUserId(payload?.sub ?? null);
         setIsAuthenticated(true);
       })
       .catch(() => {
@@ -37,6 +51,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data } = await api.post('/auth/login', { email, password });
     window.__accessToken = data.accessToken;
     localStorage.setItem('refreshToken', data.refreshToken);
+    const payload = decodeJWT(data.accessToken);
+    setCurrentUserId(payload?.sub ?? null);
     setIsAuthenticated(true);
   };
 
@@ -44,17 +60,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data } = await api.post('/auth/register', { username, email, password });
     window.__accessToken = data.accessToken;
     localStorage.setItem('refreshToken', data.refreshToken);
+    const payload = decodeJWT(data.accessToken);
+    setCurrentUserId(payload?.sub ?? null);
     setIsAuthenticated(true);
   };
 
   const logout = () => {
     window.__accessToken = null;
     localStorage.removeItem('refreshToken');
+    setCurrentUserId(null);
     setIsAuthenticated(false);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, currentUserId, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

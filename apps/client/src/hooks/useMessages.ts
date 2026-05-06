@@ -11,12 +11,18 @@ interface Message {
   is_deleted: boolean;
 }
 
+interface OptimisticEntry {
+  content: string;
+  senderId: string;
+}
+
 export function useMessages(roomId: string) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const socket = useSocket();
-  const optimisticIds = useRef(new Set<string>());
+  // tempId → { content, senderId } — her optimistic mesaj için ayrı entry
+  const optimisticMap = useRef(new Map<string, OptimisticEntry>());
 
   const loadMessages = useCallback(async (cursor?: string) => {
     if (!roomId) return;
@@ -31,16 +37,16 @@ export function useMessages(roomId: string) {
     }
   }, [roomId]);
 
-  // Initial load when room changes
+  // Oda değişince sıfırla
   useEffect(() => {
     if (!roomId) return;
     setMessages([]);
     setNextCursor(null);
-    optimisticIds.current.clear();
+    optimisticMap.current.clear();
     loadMessages();
   }, [roomId]);
 
-  // Join/leave room via socket
+  // Odaya katıl / ayrıl
   useEffect(() => {
     if (!socket || !roomId) return;
     socket.emit('joinRoom', { roomId });
@@ -49,16 +55,31 @@ export function useMessages(roomId: string) {
     };
   }, [roomId, socket]);
 
-  // Listen for incoming messages
+  // Gelen mesajları dinle
   useEffect(() => {
     if (!socket) return;
     const handler = (message: Message) => {
       setMessages((prev) => {
-        const withoutOptimistic = prev.filter(
-          (m) => !optimisticIds.current.has(m._id),
-        );
-        optimisticIds.current.clear();
-        return [...withoutOptimistic, message];
+        // Aynı gerçek mesaj zaten varsa ekleme (dedup)
+        if (prev.some((m) => m._id === message._id)) return prev;
+
+        // Bu mesajın optimistic karşılığını bul (aynı content + senderId)
+        let matchedTempId: string | null = null;
+        for (const [tempId, entry] of optimisticMap.current) {
+          if (entry.content === message.content && entry.senderId === message.sender_id) {
+            matchedTempId = tempId;
+            break;
+          }
+        }
+
+        if (matchedTempId) {
+          // Sadece eşleşen optimistic'i kaldır, diğerlerine dokunma
+          optimisticMap.current.delete(matchedTempId);
+          return [...prev.filter((m) => m._id !== matchedTempId), message];
+        }
+
+        // Başkasından gelen mesaj — direkt ekle
+        return [...prev, message];
       });
     };
     socket.on('newMessage', handler);
@@ -69,7 +90,8 @@ export function useMessages(roomId: string) {
 
   const sendMessage = useCallback((content: string, currentUserId: string) => {
     const tempId = `temp-${Date.now()}`;
-    optimisticIds.current.add(tempId);
+    optimisticMap.current.set(tempId, { content, senderId: currentUserId });
+
     const optimistic: Message = {
       _id: tempId,
       room_id: roomId,
