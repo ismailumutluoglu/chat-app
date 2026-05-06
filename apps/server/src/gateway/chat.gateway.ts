@@ -4,6 +4,8 @@ import {
   SubscribeMessage, MessageBody, ConnectedSocket,
 } from '@nestjs/websockets';
 import { UseGuards } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { Server, Socket } from 'socket.io';
 import { WsJwtGuard } from './ws-jwt.guard';
 
@@ -18,13 +20,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  constructor(
+    private jwtService: JwtService,
+    private config: ConfigService,
+  ) {}
+
   async handleConnection(client: Socket) {
     const token = client.handshake.auth?.token;
     if (!token) {
       client.disconnect();
       return;
     }
-    console.log(`Bağlandı: ${client.id}`);
+
+    try {
+      const payload = this.jwtService.verify(token, {
+        secret: this.config.get('jwt.accessSecret'),
+      });
+      client.data.userId = payload.sub;
+      client.data.email = payload.email;
+      console.log(`Bağlandı: ${client.id}, kullanıcı: ${payload.sub}`);
+    } catch {
+      client.disconnect();
+    }
   }
 
   async handleDisconnect(client: Socket) {
