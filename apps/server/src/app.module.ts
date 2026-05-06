@@ -6,6 +6,7 @@ import configuration from './config/configuration';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { RoomsModule } from './rooms/rooms.module';
+import { GatewayModule } from './gateway/gateway.module';
 import { User } from './users/entities/user.entity';
 import { Room } from './rooms/entities/room.entity';
 import { RoomParticipant } from './rooms/entities/room-participant.entity';
@@ -41,6 +42,7 @@ import { RoomParticipant } from './rooms/entities/room-participant.entity';
     AuthModule,
     UsersModule,
     RoomsModule,
+    GatewayModule,
   ],
 })
 export class AppModule {}
