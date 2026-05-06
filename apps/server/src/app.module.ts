@@ -5,7 +5,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import configuration from './config/configuration';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { RoomsModule } from './rooms/rooms.module';
 import { User } from './users/entities/user.entity';
+import { Room } from './rooms/entities/room.entity';
+import { RoomParticipant } from './rooms/entities/room-participant.entity';
 
 @Module({
   imports: [
@@ -23,7 +26,7 @@ import { User } from './users/entities/user.entity';
         username: config.get('database.username'),
         password: config.get('database.password'),
         database: config.get('database.name'),
-        entities: [User],
+        entities: [User, Room, RoomParticipant],
         synchronize: false,
       }),
       inject: [ConfigService],
@@ -37,6 +40,7 @@ import { User } from './users/entities/user.entity';
     }),
     AuthModule,
     UsersModule,
+    RoomsModule,
   ],
 })
 export class AppModule {}
